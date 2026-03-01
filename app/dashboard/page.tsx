@@ -1,3 +1,4 @@
+import { IncidentCard } from '@/components/incident-card'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -16,6 +17,14 @@ export default async function DashboardPage({
 
   const { reported } = await searchParams
 
+  // Fetch approved incidents + user's own pending ones
+  const { data: incidents } = await supabase
+    .from('incidents')
+    .select('*, incident_categories(label, icon, color, slug)')
+    .or(`status.eq.approved,and(reporter_id.eq.${user.id},status.eq.pending)`)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-12">
       <div className="mx-auto max-w-2xl">
@@ -27,7 +36,7 @@ export default async function DashboardPage({
 
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-900">Dashboard</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900">Community Feed</h1>
             <p className="mt-1 text-sm text-zinc-500">{user.email}</p>
           </div>
           <Link
@@ -38,8 +47,17 @@ export default async function DashboardPage({
           </Link>
         </div>
 
-        <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-400">
-          Incident feed coming soon
+        <div className="mt-6 space-y-3">
+          {incidents && incidents.length > 0 ? (
+            incidents.map((incident) => <IncidentCard key={incident.id} incident={incident} />)
+          ) : (
+            <div className="rounded-lg border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-400">
+              No incidents reported yet.{' '}
+              <Link href="/report" className="text-zinc-600 underline underline-offset-2">
+                Be the first to report one.
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </main>
