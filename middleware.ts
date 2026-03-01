@@ -24,7 +24,30 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session — keeps the user's session alive
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // Redirect unauthenticated users away from protected routes
+  const { pathname } = request.nextUrl
+  const isProtected =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/report') ||
+    pathname.startsWith('/profile')
+
+  if (!user && isProtected) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = '/auth/login'
+    loginUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (user && pathname.startsWith('/auth')) {
+    const dashboardUrl = request.nextUrl.clone()
+    dashboardUrl.pathname = '/dashboard'
+    return NextResponse.redirect(dashboardUrl)
+  }
 
   return supabaseResponse
 }
