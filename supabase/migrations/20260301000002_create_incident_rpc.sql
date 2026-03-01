@@ -21,6 +21,11 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
+  -- Ensure a profile row exists (safety net if trigger hasn't run)
+  INSERT INTO profiles (id)
+  VALUES (auth.uid())
+  ON CONFLICT (id) DO NOTHING;
+
   INSERT INTO incidents (
     reporter_id,
     category_id,
